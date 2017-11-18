@@ -10,6 +10,21 @@ class MP3Player
 	private var playing = false
 	private var songIndex = 0
 
+	companion object
+	{
+		fun getAllSongNames(): ArrayList<String>
+		{
+			val dbConn = DBConn()
+			val resultSet = dbConn.resultSetFromQuery("SELECT title FROM Song")
+			val songNames = ArrayList<String>()
+
+			while (resultSet.next()) { songNames.add(resultSet.getString("title")) }
+
+			dbConn.close()
+			return songNames
+		}
+	}
+
 	fun play()
 	{
 		if (!playing)
@@ -31,7 +46,7 @@ class MP3Player
 
 	private fun mediaPlayerFromName(name: String): MediaPlayer
 	{
-		val media = Media(File("Songs\\" + name).toURI().toString())
+		val media = Media(File("Songs\\$name.mp3").toURI().toString())
 		val player = MediaPlayer(media)
 		player.onEndOfMedia = Runnable { skipForward() }
 		return player
