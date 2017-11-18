@@ -1,6 +1,8 @@
 package sample
 
 import javafx.application.Application
+import javafx.beans.value.ChangeListener
+import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.scene.Scene
 import javafx.scene.layout.GridPane
@@ -8,11 +10,17 @@ import javafx.stage.Stage
 import javafx.geometry.Insets
 import javafx.geometry.Orientation
 import javafx.scene.control.*
+import java.io.File
 import java.util.*
+import javafx.beans.InvalidationListener
+
+
 
 class Main : Application()
 {
-    private val trackQueue = PriorityQueue<String>()
+	val mp3Player = MP3Player()
+
+
     override fun start(stage: Stage)
     {
         // initialising stage
@@ -49,32 +57,35 @@ class Main : Application()
         grid.children.add(playlistMenu)
 
         // add song table
-        val listView = ListView<String>(FXCollections.observableArrayList(trackQueue))
+        val observableList = FXCollections.observableList<String>(getAllSongNames())
+	    mp3Player.push(getAllSongNames())
+	    val listView = ListView(observableList)
+	    listView.selectionModel.selectedItemProperty().addListener { _, _, newValue -> mp3Player.skipTo(observableList.indexOf(newValue)) }
         listView.orientation = Orientation.VERTICAL
         GridPane.setConstraints(listView, 0, 2, 100, 1)
         grid.children.add(listView)
 
         // add play/pause button
         val playPauseButton = Button("▮▶")
-        playPauseButton.setOnAction { playPause() }
+        playPauseButton.setOnAction { mp3Player.togglePlayPause() }
         GridPane.setConstraints(playPauseButton, 0, 3)
         grid.children.add(playPauseButton)
 
-        // add progress bar
-        val progressBar = ProgressBar(0.0)
-        progressBar.maxWidth = Double.MAX_VALUE
-        GridPane.setConstraints(progressBar, 1, 3, 97, 1)
-        grid.children.add(progressBar)
+        // add seek slider
+        val slider = Slider()
+	    slider.valueProperty().addListener { _, _, newValue -> mp3Player.seekTo(newValue.toDouble()) }
+        GridPane.setConstraints(slider, 1, 3, 97, 1)
+        grid.children.add(slider)
 
         // add skip backwards button
         val skipBackwardsButton = Button("◀")
-        skipBackwardsButton.setOnMouseClicked { seek() }
+        skipBackwardsButton.setOnMouseClicked { mp3Player.skipBackward() }
         GridPane.setConstraints(skipBackwardsButton, 98, 3)
         grid.children.add(skipBackwardsButton)
 
         // add skip forwards button
         val skipForwardsButton = Button("▶")
-        skipForwardsButton.setOnMouseClicked { seek() }
+        skipForwardsButton.setOnMouseClicked { mp3Player.skipForward() }
         GridPane.setConstraints(skipForwardsButton, 99, 3)
         grid.children.add(skipForwardsButton)
 
@@ -82,15 +93,23 @@ class Main : Application()
     }
 
     private fun login() = showNotImplemented()
-    private fun addSong() = showNotImplemented()
-    private fun playPause() = showNotImplemented()
-    private fun seek() = showNotImplemented()
+    private fun addSong() = mp3Player.seekTo(0.5)
 
     private fun showNotImplemented() = Alert(Alert.AlertType.WARNING, "Not implemented yet... But watch this space!").showAndWait()
+
+	private fun getAllSongNames(): ArrayList<String>
+	{
+		val directory = System.getProperty("user.dir") + "\\Songs\\"
+		val files = File(directory).listFiles()
+		val allNames = ArrayList<String>()
+		files.forEach { if (it.isFile) allNames.add(it.name) }
+
+		return allNames
+	}
 
     companion object
     {
         @JvmStatic
-        fun main(args: Array<String>) { launch(Main::class.java) }
+        fun main(args: Array<String>) = launch(Main::class.java)
     }
 }
