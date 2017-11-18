@@ -8,12 +8,11 @@ import javafx.stage.Stage
 import javafx.geometry.Insets
 import javafx.geometry.Orientation
 import javafx.scene.control.*
-import java.io.File
-import java.util.*
 
 class Main : Application()
 {
 	val mp3Player = MP3Player()
+	val allSongs = MP3Player.getAllSongs()
 
     override fun start(stage: Stage)
     {
@@ -52,7 +51,7 @@ class Main : Application()
 
         // add song table
         val observableList = FXCollections.observableList<String>(MP3Player.getAllSongNames())
-	    mp3Player.push(MP3Player.getAllSongNames())
+	    mp3Player.push(MP3Player.getAllSongs())
 	    val listView = ListView(observableList)
 	    listView.selectionModel.selectedItemProperty().addListener { _, _, newValue -> mp3Player.skipTo(observableList.indexOf(newValue)) }
         listView.orientation = Orientation.VERTICAL

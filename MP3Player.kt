@@ -12,16 +12,33 @@ class MP3Player
 
 	companion object
 	{
-		fun getAllSongNames(): ArrayList<String>
+		fun getAllSongs(): ArrayList<Song>
 		{
 			val dbConn = DBConn()
-			val resultSet = dbConn.resultSetFromQuery("SELECT title FROM Song")
-			val songNames = ArrayList<String>()
+			val resultSet = dbConn.resultSetFromQuery("SELECT * FROM Song")
+			val allSongs = ArrayList<Song>()
 
-			while (resultSet.next()) { songNames.add(resultSet.getString("title")) }
+			while (resultSet.next())
+			{
+				allSongs.add(Song(
+					resultSet.getInt("songID"),
+					resultSet.getString("title"),
+					resultSet.getNString("artist"),
+					resultSet.getNString("album"),
+					resultSet.getInt("length"),
+					resultSet.getString("filepath")
+				))
+			}
 
 			dbConn.close()
-			return songNames
+			return allSongs
+		}
+
+		fun getAllSongNames(): ArrayList<String>
+		{
+			val allSongNames = ArrayList<String>()
+			getAllSongs().forEach { allSongNames.add(it.title) }
+			return allSongNames
 		}
 	}
 
@@ -44,17 +61,18 @@ class MP3Player
 	}
 	fun togglePlayPause() = if (playing) pause() else play()
 
-	private fun mediaPlayerFromName(name: String): MediaPlayer
+	private fun mediaPlayerFromSong(song: Song): MediaPlayer
 	{
-		val media = Media(File("Songs\\$name.mp3").toURI().toString())
+		val uri = File(song.filepath).toURI()
+		val media = Media(uri.toString())
 		val player = MediaPlayer(media)
 		player.onEndOfMedia = Runnable { skipForward() }
 		return player
 	}
 
-	fun push(name: String) = queue.add(mediaPlayerFromName(name))
-	fun push(vararg names: String) = names.forEach { push(it) }
-	fun push(names: ArrayList<String>) = names.forEach { push(it) }
+	fun push(song: Song) = queue.add(mediaPlayerFromSong(song))
+	fun push(vararg songs: Song) = songs.forEach { push(it) }
+	fun push(songs: ArrayList<Song>) = songs.forEach { push(it) }
 
 	fun clear() = queue.clear()
 
