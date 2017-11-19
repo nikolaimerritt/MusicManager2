@@ -12,32 +12,53 @@ class MP3Player
 
 	companion object
 	{
-		fun getAllSongs(): ArrayList<Song>
+		fun songsInPlaylist(playlist: Playlist): ArrayList<Song>
 		{
 			val dbConn = DBConn()
-			val resultSet = dbConn.resultSetFromQuery("SELECT * FROM Song")
-			val allSongs = ArrayList<Song>()
+			val query = "SELECT Song.* FROM Song JOIN PlaylistSong ON Song.songID = PlaylistSong.songID WHERE PlaylistSong.playlistID = ${playlist.playlistID};"
+			val resultSet = dbConn.resultSetFromQuery(query)
+			val songsInPlaylist = ArrayList<Song>()
 
 			while (resultSet.next())
 			{
-				allSongs.add(Song(
-					resultSet.getInt("songID"),
-					resultSet.getString("title"),
-					resultSet.getNString("artist"),
-					resultSet.getNString("album"),
-					resultSet.getInt("length"),
-					resultSet.getString("filepath")
+				songsInPlaylist.add(Song(
+						resultSet.getInt("songID"),
+						resultSet.getString("title"),
+						resultSet.getNString("artist"),
+						resultSet.getNString("album"),
+						resultSet.getString("filepath")
 				))
 			}
 
 			dbConn.close()
-			return allSongs
+			return songsInPlaylist
 		}
 
-		fun getAllSongNames(): ArrayList<String>
+		fun allPlaylists(): ArrayList<Playlist>
+		{
+			val dbConn = DBConn()
+			val query = "SELECT Playlist.* FROM Playlist;"
+			val resultSet = dbConn.resultSetFromQuery(query)
+			val allPlaylists = ArrayList<Playlist>()
+
+			while (resultSet.next())
+			{
+				allPlaylists.add(Playlist(
+						resultSet.getInt("playlistID"),
+						resultSet.getString("name"),
+						resultSet.getString("username"),
+						resultSet.getBoolean("isUserEditable")
+				))
+			}
+
+			dbConn.close()
+			return allPlaylists
+		}
+
+		fun titlesInPlaylist(playlist: Playlist): ArrayList<String>
 		{
 			val allSongNames = ArrayList<String>()
-			getAllSongs().forEach { allSongNames.add(it.title) }
+			songsInPlaylist(playlist).forEach { allSongNames.add(it.title) }
 			return allSongNames
 		}
 	}

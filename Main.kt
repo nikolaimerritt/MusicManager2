@@ -12,10 +12,12 @@ import javafx.scene.control.*
 class Main : Application()
 {
 	val mp3Player = MP3Player()
-	val allSongs = MP3Player.getAllSongs()
+	val currentPlaylist = Playlist(1, "All Songs", "laudo", true)
+	val allSongs = MP3Player.songsInPlaylist(currentPlaylist)
 
     override fun start(stage: Stage)
     {
+	    println(allSongs.size)
         // initialising stage
         val grid = GridPane()
         val scene = Scene(grid)
@@ -50,8 +52,8 @@ class Main : Application()
         grid.children.add(playlistMenu)
 
         // add song table
-        val observableList = FXCollections.observableList<String>(MP3Player.getAllSongNames())
-	    mp3Player.push(MP3Player.getAllSongs())
+        val observableList = FXCollections.observableList<String>(MP3Player.titlesInPlaylist(currentPlaylist))
+	    mp3Player.push(MP3Player.songsInPlaylist(currentPlaylist))
 	    val listView = ListView(observableList)
 	    listView.selectionModel.selectedItemProperty().addListener { _, _, newValue -> mp3Player.skipTo(observableList.indexOf(newValue)) }
         listView.orientation = Orientation.VERTICAL

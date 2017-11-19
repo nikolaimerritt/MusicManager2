@@ -7,7 +7,7 @@ class DBConn(private val username: String = "root", private val password: String
 {
 	init { Class.forName("com.mysql.jdbc.Driver") }
 
-	val connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/$dbName", username, password)
+	val connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/$dbName?autoReconnect=true&useSSL=false", username, password)
 
 	fun resultSetFromQuery(query: String): ResultSet
 	{
