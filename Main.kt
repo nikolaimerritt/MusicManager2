@@ -35,16 +35,10 @@ class Main : Application()
         GridPane.setConstraints(loginButton, 0, 0)
         grid.children.add(loginButton)
 
-        // add plus button
-        val plusButton = Button("+")
-        plusButton.setOnAction { addSong() }
-        GridPane.setConstraints(plusButton, 98, 0)
-        grid.children.add(plusButton)
-
 	    // add seek slider
 	    val seekSlider = Slider()
 	    seekSlider.valueProperty().addListener { _, _, newValue -> if (seekSlider.isPressed) { mp3Player.seekTo(newValue.toDouble()) } }
-	    GridPane.setConstraints(seekSlider, 1, 3, 97, 1)
+	    GridPane.setConstraints(seekSlider, 1, 3, 94, 1)
 	    grid.children.add(seekSlider)
 
         // add song table
@@ -59,7 +53,7 @@ class Main : Application()
 		    }
 	     }
         listView.orientation = Orientation.VERTICAL
-        GridPane.setConstraints(listView, 0, 2, 100, 1)
+        GridPane.setConstraints(listView, 0, 2, 98, 1)
         grid.children.add(listView)
 
 	    // adding search box
@@ -73,7 +67,7 @@ class Main : Application()
 	    GridPane.setConstraints(searchBox, 1, 0, 97, 1)
 	    grid.children.add(searchBox)
 
-	    // add drop-down playlist menu
+	    // add playlist combo box
 	    val playlistMenu = ComboBox<String>(FXCollections.observableList<String>(MP3Player.allPlaylistNames()))
 	    playlistMenu.valueProperty().addListener { _, _, newPlaylistName
 	    ->
@@ -105,14 +99,31 @@ class Main : Application()
         // add skip backwards button
         val skipBackwardsButton = Button("◀")
         skipBackwardsButton.setOnMouseClicked { mp3Player.skipBackward() }
-        GridPane.setConstraints(skipBackwardsButton, 98, 3)
+        GridPane.setConstraints(skipBackwardsButton, 95, 3)
         grid.children.add(skipBackwardsButton)
 
         // add skip forwards button
         val skipForwardsButton = Button("▶")
         skipForwardsButton.setOnMouseClicked { mp3Player.skipForward() }
-        GridPane.setConstraints(skipForwardsButton, 99, 3)
+        GridPane.setConstraints(skipForwardsButton, 97, 3)
         grid.children.add(skipForwardsButton)
+
+	    // add Add options
+	    val functComboBox = ComboBox<String>(FXCollections.observableArrayList(arrayListOf("Function...", "Add", "Rename", "Delete")))
+	    functComboBox.selectionModel.selectFirst()
+	    GridPane.setConstraints(functComboBox, 70, 1, 10, 1)
+	    grid.children.add(functComboBox)
+
+	    // add Rename options
+	    val toComboBox = ComboBox<String>(FXCollections.observableArrayList(arrayListOf("To...", "Playlist", "Song")))
+	    toComboBox.selectionModel.selectFirst()
+	    GridPane.setConstraints(toComboBox, 80, 1, 10, 1)
+	    grid.children.add(toComboBox)
+
+	    // add Execute button
+	    val executeButton = Button("Go!")
+	    GridPane.setConstraints(executeButton, 97, 1)
+	    grid.children.add(executeButton)
 
 	    mp3Player.push(MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs")))
         stage.show()
@@ -129,7 +140,6 @@ class Main : Application()
 			    }
 			    if (mp3Player.newSong)
 			    {
-				    println("newwww")
 				    seekSlider.adjustValue(0.0)
 				    mp3Player.newSong = false
 			    }
