@@ -12,8 +12,8 @@ import javafx.scene.control.*
 class Main : Application()
 {
 	private val mp3Player = MP3Player()
-	val allPlaylists = MP3Player.allPlaylists()
-	//private val currentPlaylist = Playlist("All Songs", "laudo", true)
+	//private val allPlaylists = MP3Player.allPlaylists()
+	private var currentPlaylist = Playlist("All Songs", "laudo", true)
 
     override fun start(stage: Stage)
     {
@@ -61,16 +61,27 @@ class Main : Application()
 	    val playlistMenu = ComboBox<String>(FXCollections.observableList<String>(MP3Player.allPlaylistNames()))
 	    playlistMenu.valueProperty().addListener { _, _, newPlaylistName
 	    ->
-		    val newPlaylist = MP3Player.playlistFromName(newPlaylistName)
+		    currentPlaylist = MP3Player.playlistFromName(newPlaylistName)
 		    observableList.clear()
-		    observableList.addAll(MP3Player.titlesInPlaylist(newPlaylist))
+		    observableList.addAll(MP3Player.titlesInPlaylist(currentPlaylist))
 	    }
 	    playlistMenu.selectionModel.selectFirst()
-	    GridPane.setConstraints(playlistMenu, 0 ,1, 98, 1)
+	    GridPane.setConstraints(playlistMenu, 0 ,1, 5, 1)
 	    grid.children.add(playlistMenu)
 
+	    // add play playlist button
+	    val playPlaylistButton = Button("Play playlist")
+	    playPlaylistButton.setOnAction {
+		    mp3Player.stop()
+		    mp3Player.clear()
+		    mp3Player.push(MP3Player.songsInPlaylist(currentPlaylist))
+		    mp3Player.play()
+	    }
+	    GridPane.setConstraints(playPlaylistButton,6, 1)
+	    grid.children.add(playPlaylistButton)
+
         // add play/pause button
-        val playPauseButton = Button("▮▶")
+        val playPauseButton = Button("| | ▶")
         playPauseButton.setOnAction { mp3Player.togglePlayPause() }
         GridPane.setConstraints(playPauseButton, 0, 3)
         grid.children.add(playPauseButton)
