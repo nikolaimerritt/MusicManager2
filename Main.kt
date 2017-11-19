@@ -49,7 +49,10 @@ class Main : Application()
         val observableList = FXCollections.observableList<String>(arrayListOf(""))//MP3Player.titlesInPlaylist(currentPlaylist))
 	    //mp3Player.push(MP3Player.songsInPlaylist(currentPlaylist))
 	    val listView = ListView(observableList)
-	    listView.selectionModel.selectedItemProperty().addListener { _, _, newValue -> mp3Player.skipTo(observableList.indexOf(newValue)) }
+	    listView.selectionModel.selectedItemProperty().addListener { _, _, newValue ->
+		    val newIndex = observableList.indexOf(newValue)
+		    if (newIndex >= 0 && newIndex < observableList.size) { mp3Player.skipTo(observableList.indexOf(newValue)) }
+	     }
         listView.orientation = Orientation.VERTICAL
         GridPane.setConstraints(listView, 0, 2, 100, 1)
         grid.children.add(listView)
@@ -59,11 +62,8 @@ class Main : Application()
 	    playlistMenu.valueProperty().addListener { _, _, newPlaylistName
 	    ->
 		    val newPlaylist = MP3Player.playlistFromName(newPlaylistName)
-		    mp3Player.stop()
 		    observableList.clear()
 		    observableList.addAll(MP3Player.titlesInPlaylist(newPlaylist))
-		    mp3Player.push(MP3Player.songsInPlaylist(newPlaylist))
-		    mp3Player.play()
 	    }
 	    playlistMenu.selectionModel.selectFirst()
 	    GridPane.setConstraints(playlistMenu, 0 ,1, 98, 1)
@@ -93,6 +93,8 @@ class Main : Application()
         GridPane.setConstraints(skipForwardsButton, 99, 3)
         grid.children.add(skipForwardsButton)
 
+	    mp3Player.push(MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs")))
+	    mp3Player.startFromBeginning()
         stage.show()
     }
 

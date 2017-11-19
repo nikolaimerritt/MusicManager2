@@ -121,9 +121,13 @@ class MP3Player
 	fun push(vararg songs: Song) = songs.forEach { push(it) }
 	fun push(songs: ArrayList<Song>) = songs.forEach { push(it) }
 
-	fun clear() = queue.clear()
+	fun clear()
+	{
+		queue.clear()
+		songIndex = 0
+	}
 
-	fun startQueueFromBeginning()
+	fun startFromBeginning()
 	{
 		if (queue.isEmpty()) { println("Can't play an empty queue :(") }
 		else
@@ -154,7 +158,8 @@ class MP3Player
 
 	fun skipTo(newIndex: Int)
 	{
-		if (newIndex >= queue.size) { println("$newIndex is out of range of the queue, which has ${queue.size} elements.") }
+		if (newIndex >= queue.size) { println("newIndex is $newIndex, which is out of range of the queue, which has ${queue.size} elements.") }
+		else if (newIndex < 0) { println("newIndex is $newIndex, which is less than 0. ") }
 		else
 		{
 			stop()
@@ -174,8 +179,7 @@ class MP3Player
 	fun skipBackward()
 	{
 		stop()
-		if (songIndex - 1 < 0) { songIndex = queue.size - 1 }
-		else { songIndex-- }
+		songIndex = Math.max(songIndex - 1, 0)
 		play()
 	}
 }
