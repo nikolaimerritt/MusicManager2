@@ -11,13 +11,12 @@ import javafx.scene.control.*
 
 class Main : Application()
 {
-	val mp3Player = MP3Player()
-	val currentPlaylist = Playlist(1, "All Songs", "laudo", true)
-	val allSongs = MP3Player.songsInPlaylist(currentPlaylist)
+	private val mp3Player = MP3Player()
+	val allPlaylists = MP3Player.allPlaylists()
+	private val currentPlaylist = Playlist(1, "All Songs", "laudo", true)
 
     override fun start(stage: Stage)
     {
-	    println(allSongs.size)
         // initialising stage
         val grid = GridPane()
         val scene = Scene(grid)
@@ -47,7 +46,11 @@ class Main : Application()
         grid.children.add(plusButton)
 
         // add drop-down playlist menu
-        val playlistMenu = ComboBox<String>()
+        val playlistMenu = ComboBox<String>(FXCollections.observableList<String>(MP3Player.allPlaylistNames()))
+	    playlistMenu.valueProperty().addListener { _, _, newValue ->
+		    println(newValue)
+	    }
+	    playlistMenu.selectionModel.selectFirst()
         GridPane.setConstraints(playlistMenu, 0 ,1, 98, 1)
         grid.children.add(playlistMenu)
 
@@ -88,7 +91,7 @@ class Main : Application()
     }
 
     private fun login() = showNotImplemented()
-    private fun addSong() = mp3Player.seekTo(0.5)
+    private fun addSong() = mp3Player.seekTo(50.0)
 
     private fun showNotImplemented() = Alert(Alert.AlertType.WARNING, "Not implemented yet... But watch this space!").showAndWait()
 

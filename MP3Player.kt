@@ -15,7 +15,7 @@ class MP3Player
 		fun songsInPlaylist(playlist: Playlist): ArrayList<Song>
 		{
 			val dbConn = DBConn()
-			val query = "SELECT Song.* FROM Song JOIN PlaylistSong ON Song.songID = PlaylistSong.songID WHERE PlaylistSong.playlistID = ${playlist.playlistID};"
+			val query = "SELECT Song.* FROM Song JOIN PlaylistSong ON Song.songID = PlaylistSong.songID WHERE PlaylistSong.playlistName = '${playlist.playlistName}';"
 			val resultSet = dbConn.resultSetFromQuery(query)
 			val songsInPlaylist = ArrayList<Song>()
 
@@ -45,7 +45,7 @@ class MP3Player
 			{
 				allPlaylists.add(Playlist(
 						resultSet.getInt("playlistID"),
-						resultSet.getString("name"),
+						resultSet.getString("playlistName"),
 						resultSet.getString("username"),
 						resultSet.getBoolean("isUserEditable")
 				))
@@ -53,6 +53,13 @@ class MP3Player
 
 			dbConn.close()
 			return allPlaylists
+		}
+
+		fun allPlaylistNames(): ArrayList<String>
+		{
+			val allNames = ArrayList<String>()
+			allPlaylists().forEach { allNames.add(it.playlistName) }
+			return allNames
 		}
 
 		fun titlesInPlaylist(playlist: Playlist): ArrayList<String>
