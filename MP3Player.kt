@@ -44,7 +44,6 @@ class MP3Player
 			while (resultSet.next())
 			{
 				allPlaylists.add(Playlist(
-						resultSet.getInt("playlistID"),
 						resultSet.getString("playlistName"),
 						resultSet.getString("username"),
 						resultSet.getBoolean("isUserEditable")
@@ -60,6 +59,26 @@ class MP3Player
 			val allNames = ArrayList<String>()
 			allPlaylists().forEach { allNames.add(it.playlistName) }
 			return allNames
+		}
+
+		fun playlistFromName(name: String): Playlist
+		{
+			val dbConn = DBConn()
+			val query = "SELECT * FROM Playlist WHERE Playlist.playlistName = '$name'"
+			val resultSet = dbConn.resultSetFromQuery(query)
+			val playlist: Playlist
+			if (resultSet.next())
+			{
+				playlist = Playlist(
+						resultSet.getString("playlistName"),
+						resultSet.getString("username"),
+						resultSet.getBoolean("isUserEditable")
+				)
+			}
+			else { throw Exception("No matches where Playlist.playlistName = '$name'") }
+			dbConn.close()
+			return playlist
+
 		}
 
 		fun titlesInPlaylist(playlist: Playlist): ArrayList<String>

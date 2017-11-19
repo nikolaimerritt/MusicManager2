@@ -13,7 +13,7 @@ class Main : Application()
 {
 	private val mp3Player = MP3Player()
 	val allPlaylists = MP3Player.allPlaylists()
-	private val currentPlaylist = Playlist(1, "All Songs", "laudo", true)
+	//private val currentPlaylist = Playlist("All Songs", "laudo", true)
 
     override fun start(stage: Stage)
     {
@@ -45,23 +45,29 @@ class Main : Application()
         GridPane.setConstraints(plusButton, 98, 0)
         grid.children.add(plusButton)
 
-        // add drop-down playlist menu
-        val playlistMenu = ComboBox<String>(FXCollections.observableList<String>(MP3Player.allPlaylistNames()))
-	    playlistMenu.valueProperty().addListener { _, _, newValue ->
-		    println(newValue)
-	    }
-	    playlistMenu.selectionModel.selectFirst()
-        GridPane.setConstraints(playlistMenu, 0 ,1, 98, 1)
-        grid.children.add(playlistMenu)
-
         // add song table
-        val observableList = FXCollections.observableList<String>(MP3Player.titlesInPlaylist(currentPlaylist))
-	    mp3Player.push(MP3Player.songsInPlaylist(currentPlaylist))
+        val observableList = FXCollections.observableList<String>(arrayListOf(""))//MP3Player.titlesInPlaylist(currentPlaylist))
+	    //mp3Player.push(MP3Player.songsInPlaylist(currentPlaylist))
 	    val listView = ListView(observableList)
 	    listView.selectionModel.selectedItemProperty().addListener { _, _, newValue -> mp3Player.skipTo(observableList.indexOf(newValue)) }
         listView.orientation = Orientation.VERTICAL
         GridPane.setConstraints(listView, 0, 2, 100, 1)
         grid.children.add(listView)
+
+	    // add drop-down playlist menu
+	    val playlistMenu = ComboBox<String>(FXCollections.observableList<String>(MP3Player.allPlaylistNames()))
+	    playlistMenu.valueProperty().addListener { _, _, newPlaylistName
+	    ->
+		    val newPlaylist = MP3Player.playlistFromName(newPlaylistName)
+		    mp3Player.stop()
+		    observableList.clear()
+		    observableList.addAll(MP3Player.titlesInPlaylist(newPlaylist))
+		    mp3Player.push(MP3Player.songsInPlaylist(newPlaylist))
+		    mp3Player.play()
+	    }
+	    playlistMenu.selectionModel.selectFirst()
+	    GridPane.setConstraints(playlistMenu, 0 ,1, 98, 1)
+	    grid.children.add(playlistMenu)
 
         // add play/pause button
         val playPauseButton = Button("▮▶")
