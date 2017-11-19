@@ -1,6 +1,7 @@
 package sample
 
 import javafx.application.Application
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.scene.Scene
 import javafx.scene.layout.GridPane
@@ -8,6 +9,7 @@ import javafx.stage.Stage
 import javafx.geometry.Insets
 import javafx.geometry.Orientation
 import javafx.scene.control.*
+import java.util.*
 
 class Main : Application()
 {
@@ -33,29 +35,43 @@ class Main : Application()
         GridPane.setConstraints(loginButton, 0, 0)
         grid.children.add(loginButton)
 
-        // adding search box
-        val searchBox = TextField()
-        searchBox.promptText = "Search me baby..."
-        GridPane.setConstraints(searchBox, 1, 0, 97, 1)
-        grid.children.add(searchBox)
-
         // add plus button
         val plusButton = Button("+")
         plusButton.setOnAction { addSong() }
         GridPane.setConstraints(plusButton, 98, 0)
         grid.children.add(plusButton)
 
+	    // add seek slider
+	    val seekSlider = Slider()
+	    seekSlider.valueProperty().addListener { _, _, newValue -> if (seekSlider.isPressed) { mp3Player.seekTo(newValue.toDouble()) } }
+	    GridPane.setConstraints(seekSlider, 1, 3, 97, 1)
+	    grid.children.add(seekSlider)
+
         // add song table
-        val observableList = FXCollections.observableList<String>(arrayListOf(""))//MP3Player.titlesInPlaylist(currentPlaylist))
-	    //mp3Player.push(MP3Player.songsInPlaylist(currentPlaylist))
+        val observableList = FXCollections.observableList<String>(arrayListOf(""))
 	    val listView = ListView(observableList)
 	    listView.selectionModel.selectedItemProperty().addListener { _, _, newValue ->
 		    val newIndex = observableList.indexOf(newValue)
-		    if (newIndex >= 0 && newIndex < observableList.size) { mp3Player.skipTo(observableList.indexOf(newValue)) }
+		    if (newIndex >= 0 && newIndex < observableList.size)
+		    {
+			    mp3Player.skipTo(observableList.indexOf(newValue))
+			    seekSlider.value = 0.0
+		    }
 	     }
         listView.orientation = Orientation.VERTICAL
         GridPane.setConstraints(listView, 0, 2, 100, 1)
         grid.children.add(listView)
+
+	    // adding search box
+	    val searchBox = TextField()
+	    searchBox.textProperty().addListener { _, _, searchText
+	    ->
+			listView.items.clear()
+		    MP3Player.titlesInPlaylist(currentPlaylist).forEach { if (it.toLowerCase().contains(searchText.toLowerCase()) || searchText == "") listView.items.add(it) }
+	    }
+	    searchBox.promptText = "Search me baby..."
+	    GridPane.setConstraints(searchBox, 1, 0, 97, 1)
+	    grid.children.add(searchBox)
 
 	    // add drop-down playlist menu
 	    val playlistMenu = ComboBox<String>(FXCollections.observableList<String>(MP3Player.allPlaylistNames()))
@@ -86,12 +102,6 @@ class Main : Application()
         GridPane.setConstraints(playPauseButton, 0, 3)
         grid.children.add(playPauseButton)
 
-        // add seek slider
-        val slider = Slider()
-	    slider.valueProperty().addListener { _, _, newValue -> mp3Player.seekTo(newValue.toDouble()) }
-        GridPane.setConstraints(slider, 1, 3, 97, 1)
-        grid.children.add(slider)
-
         // add skip backwards button
         val skipBackwardsButton = Button("◀")
         skipBackwardsButton.setOnMouseClicked { mp3Player.skipBackward() }
@@ -105,8 +115,27 @@ class Main : Application()
         grid.children.add(skipForwardsButton)
 
 	    mp3Player.push(MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs")))
-	    mp3Player.startFromBeginning()
         stage.show()
+	    val incrementSliderThread = Thread(Runnable
+	    {
+		    var unixTime = System.currentTimeMillis()
+		    while (true)
+		    {
+			    if (System.currentTimeMillis() - unixTime >= 100 && mp3Player.playing)
+			    {
+				    val tick = mp3Player.currentSongLength() / 10000000
+				    seekSlider.value += tick
+				    unixTime = System.currentTimeMillis()
+			    }
+			    if (mp3Player.newSong)
+			    {
+				    println("newwww")
+				    seekSlider.adjustValue(0.0)
+				    mp3Player.newSong = false
+			    }
+		    }
+	    })
+	    incrementSliderThread.start()
     }
 
     private fun login() = showNotImplemented()

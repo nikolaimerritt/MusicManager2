@@ -7,7 +7,8 @@ import java.io.File
 class MP3Player
 {
 	private val queue = ArrayList<MediaPlayer>()
-	private var playing = false
+	var playing = false; private set
+	@Volatile var newSong = false
 	private var songIndex = 0
 
 	companion object
@@ -173,6 +174,7 @@ class MP3Player
 		stop()
 		if (songIndex + 1 < queue.size) { songIndex++ }
 		else { songIndex = 0 }
+		newSong = true
 		play()
 	}
 
@@ -181,5 +183,11 @@ class MP3Player
 		stop()
 		songIndex = Math.max(songIndex - 1, 0)
 		play()
+	}
+
+	fun currentSongLength(): Double
+	{
+		if (queue.isNotEmpty() && songIndex < queue.size && songIndex >= 0) { return queue[songIndex].totalDuration.toMillis() }
+		throw Exception("songIndex is $songIndex, whereas queue has ${queue.size} elements.")
 	}
 }
