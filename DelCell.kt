@@ -12,12 +12,10 @@ enum class PlaylistType { ALL_SONGS, NOT_ALL_SONGS }
 
 internal class DelCell(delText: String, type: PlaylistType, allSongs: ArrayList<Song>, currentSongs: ArrayList<Song>, currentSongNames: ObservableList<String>) : ListCell<String>()
 {
-	var hbox = HBox()
-	var label = Label()
-	var pane = Pane()
-	var button = Button(delText)
-
-	companion object { var amountSoFar = 0 }
+	private var hbox = HBox()
+	private var label = Label()
+	private var pane = Pane()
+	private var button = Button(delText)
 
 	init
 	{
@@ -27,8 +25,11 @@ internal class DelCell(delText: String, type: PlaylistType, allSongs: ArrayList<
 			if (type == PlaylistType.ALL_SONGS)
 			{
 				val songToAdd = allSongs[this.index]
-				currentSongs.add(songToAdd)
-				currentSongNames.add(songToAdd.title)
+				if (songToAdd !in currentSongs)
+				{
+					currentSongs.add(songToAdd)
+					currentSongNames.add(songToAdd.title)
+				}
 			}
 			else
 			{
@@ -45,7 +46,8 @@ internal class DelCell(delText: String, type: PlaylistType, allSongs: ArrayList<
 		text = null
 		graphic = null
 
-		if (item != null && !empty) {
+		if (item != null && !empty)
+		{
 			label.text = item
 			graphic = hbox
 		}
