@@ -45,11 +45,13 @@ class Main : Application()
         // add song table
         val observableList = FXCollections.observableList<String>(arrayListOf(""))
 	    val listView = ListView(observableList)
-	    listView.selectionModel.selectedItemProperty().addListener { _, _, newValue ->
-		    val newIndex = observableList.indexOf(newValue)
-		    if (newIndex >= 0 && newIndex < observableList.size)
+	    listView.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+		    val newIndex = listView.selectionModel.selectedIndex
+		    if (newIndex >= 0 && newIndex < listView.items.size)
 		    {
-			    mp3Player.skipTo(observableList.indexOf(newValue))
+			    println("current playlist: ${currentPlaylist.playlistName}")
+			    mp3Player.reload(MP3Player.songsInPlaylist(currentPlaylist))
+			    mp3Player.skipTo(newIndex)
 			    seekSlider.value = 0.0
 		    }
 	     }
@@ -84,8 +86,7 @@ class Main : Application()
 	    val playPlaylistButton = Button("Play playlist")
 	    playPlaylistButton.setOnAction {
 		    mp3Player.stop()
-		    mp3Player.clear()
-		    mp3Player.push(MP3Player.songsInPlaylist(currentPlaylist))
+		    mp3Player.reload(MP3Player.songsInPlaylist(currentPlaylist))
 		    mp3Player.play()
 	    }
 	    GridPane.setConstraints(playPlaylistButton,6, 1)
@@ -139,7 +140,7 @@ class Main : Application()
 		    {
 			    if (toComboBox.value == "Playlist")
 			    {
-				    if (currentPlaylist.isUserEditable) { spawnEditPlaylistWindow(currentPlaylist) }
+				    if (currentPlaylist.isUserEditable) { spawnEditPlaylistWindow(currentPlaylist); println(currentPlaylist.playlistName) }
 				    else { Alert(Alert.AlertType.ERROR, "Cannot edit \"${currentPlaylist.playlistName}\".").showAndWait() }
 			    }
 		    }
@@ -147,7 +148,7 @@ class Main : Application()
 	    GridPane.setConstraints(executeButton, 97, 1)
 	    grid.children.add(executeButton)
 
-	    mp3Player.push(MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs")))
+	    mp3Player.reload(MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs")))
         stage.show()
 	    val incrementSliderThread = Thread(Runnable
 	    {
@@ -181,7 +182,13 @@ class Main : Application()
 		stage.title = "Edit ${playlist.playlistName}"
 		stage.setOnCloseRequest {
 			val confirmationResult = Alert(Alert.AlertType.CONFIRMATION, "Are you sure you want to close without saving?").showAndWait()
-			if (confirmationResult.get() == ButtonType.OK) { stage.close() }
+			if (confirmationResult.get() == ButtonType.OK)
+			{
+				val dbConn = DBConn()
+				dbConn.executeChangeQuery("DELETE FROM Playlist WHERE playlistName = '$PLACEHOLDER_PLAYLIST_NAME';")
+				dbConn.close()
+				stage.close()
+			}
 		}
 		grid.padding = Insets(10.0, 10.0, 10.0, 10.0)
 		grid.vgap = 5.0
@@ -202,13 +209,13 @@ class Main : Application()
 		// add All Songs header
 		val allSongsHeader = TextField("All Songs")
 		allSongsHeader.isEditable = false
-		GridPane.setConstraints(allSongsHeader, 0, 2, 44, 1)
+		GridPane.setConstraints(allSongsHeader, 0, 2, 80, 1)
 		grid.children.add(allSongsHeader)
 
 		// add Current Playlist header
 		val currentPlaylistHeader = TextField(playlist.playlistName)
 		currentPlaylistHeader.isEditable = false
-		GridPane.setConstraints(currentPlaylistHeader, 45, 2, 44, 1)
+		GridPane.setConstraints(currentPlaylistHeader, 81, 2, 80, 1)
 		grid.children.add(currentPlaylistHeader)
 
 		// add All Songs table
@@ -218,39 +225,16 @@ class Main : Application()
 		val currentSongNames = FXCollections.observableArrayList<String>(MP3Player.titlesInPlaylist(MP3Player.playlistFromName(playlist.playlistName)))
 
 		val allSongsLV = ListView(allSongNames)
-		var songHistory = ArrayDeque<Song>()
-		allSongsLV.selectionModel.selectedItemProperty().addListener { _, _, selectedSongName
-		->
-			if (selectedSongName in allSongNames)
-			{
-				val newSong = allSongs[allSongsLV.selectionModel.selectedIndex]
-				if (newSong !in currentSongs)
-				{
-					songHistory.add(newSong)
-					currentSongs.add(newSong)
-					currentSongNames.add(newSong.title)
-				}
-			}
-		}
-		GridPane.setConstraints(allSongsLV, 0, 3, 44, 10)
+		allSongsLV.setCellFactory { _ -> DelCell("->", PlaylistType.ALL_SONGS, allSongs, currentSongs, currentSongNames) }
+		allSongsLV.cellFactoryProperty()
+		GridPane.setConstraints(allSongsLV, 0, 3, 80, 10)
 		grid.children.add(allSongsLV)
 
 		// add Current Playlist table
 		val currentSongsLV = ListView(currentSongNames)
-		GridPane.setConstraints(currentSongsLV, 45, 3, 44, 10)
+		currentSongsLV.setCellFactory { _ -> DelCell("<-", PlaylistType.NOT_ALL_SONGS, allSongs, currentSongs, currentSongNames) }
+		GridPane.setConstraints(currentSongsLV, 81, 3, 80, 10)
 		grid.children.add(currentSongsLV)
-
-		val undoButton = Button("Undo")
-		undoButton.setOnMouseClicked {
-			if (songHistory.isNotEmpty())
-			{
-				val songToRemove = songHistory.pop()
-				currentSongsLV.items.removeAt(currentSongs.indexOf(songToRemove))
-				currentSongs.remove(songToRemove)
-			}
-		}
-		GridPane.setConstraints(undoButton, 88, 1)
-		grid.children.add(undoButton)
 
 		// add publish button
 		val publishButton = Button("Publish!")
@@ -267,10 +251,15 @@ class Main : Application()
 					dbConn.executeChangeQuery("UPDATE PlaylistSong SET playlistName = '$newPlaylistName' WHERE playlistName = '$PLACEHOLDER_PLAYLIST_NAME';")
 					dbConn.executeChangeQuery("SET FOREIGN_KEY_CHECKS = 1;")
 				}
-				else { dbConn.executeChangeQuery("INSERT INTO Playlist VALUES ('$newPlaylistName', '${currentUser.username}', TRUE);") }
-				currentSongs
-						.map { "INSERT INTO PlaylistSong VALUES ('$newPlaylistName', ${it.songID});" }
-						.forEach { dbConn.executeChangeQuery(it) }
+				else if (newPlaylistName != playlist.playlistName)
+				{
+					dbConn.executeChangeQuery("UPDATE Playlist SET playlistName = '$newPlaylistName' WHERE playlistName = '${playlist.playlistName}');")
+				}
+				else { dbConn.executeChangeQuery("DELETE FROM PlaylistSong WHERE playlistName = '$newPlaylistName'") }
+				for (song in currentSongs)
+				{
+					dbConn.executeChangeQuery("INSERT INTO PlaylistSong VALUES ('$newPlaylistName', ${song.songID});")
+				}
 				dbConn.close()
 				stage.close()
 			}

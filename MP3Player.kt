@@ -128,6 +128,14 @@ class MP3Player
 		songIndex = 0
 	}
 
+	fun reload(songs: ArrayList<Song>)
+	{
+		stop()
+		clear()
+		push(songs)
+		play()
+	}
+
 	fun startFromBeginning()
 	{
 		if (queue.isEmpty()) { println("Can't play an empty queue :(") }
