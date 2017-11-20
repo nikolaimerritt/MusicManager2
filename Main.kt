@@ -1,7 +1,6 @@
 package sample
 
 import javafx.application.Application
-import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.scene.Scene
 import javafx.scene.layout.GridPane
@@ -10,12 +9,14 @@ import javafx.geometry.Insets
 import javafx.geometry.Orientation
 import javafx.scene.control.*
 import java.util.*
+import kotlin.collections.ArrayList
 
 class Main : Application()
 {
 	private val mp3Player = MP3Player()
-	//private val allPlaylists = MP3Player.allPlaylists()
-	private var currentPlaylist = Playlist("All Songs", "laudo", true)
+	private val PLACEHOLDER_PLAYLIST_NAME = "<New Playlist>"
+	private val currentUser = User("laudo", "laudo_")
+	private var currentPlaylist = Playlist("All Songs", currentUser.username, true)
 
     override fun start(stage: Stage)
     {
@@ -75,7 +76,7 @@ class Main : Application()
 		    observableList.clear()
 		    observableList.addAll(MP3Player.titlesInPlaylist(currentPlaylist))
 	    }
-	    playlistMenu.selectionModel.selectFirst()
+	    playlistMenu.selectionModel.select("All Songs")
 	    GridPane.setConstraints(playlistMenu, 0 ,1, 5, 1)
 	    grid.children.add(playlistMenu)
 
@@ -109,7 +110,7 @@ class Main : Application()
         grid.children.add(skipForwardsButton)
 
 	    // add Add options
-	    val functComboBox = ComboBox<String>(FXCollections.observableArrayList(arrayListOf("Function...", "Add", "Rename", "Delete")))
+	    val functComboBox = ComboBox<String>(FXCollections.observableArrayList(arrayListOf("Function...", "Add", "Edit", "Delete")))
 	    functComboBox.selectionModel.selectFirst()
 	    GridPane.setConstraints(functComboBox, 70, 1, 10, 1)
 	    grid.children.add(functComboBox)
@@ -122,6 +123,27 @@ class Main : Application()
 
 	    // add Execute button
 	    val executeButton = Button("Go!")
+	    executeButton.setOnMouseClicked {
+		    if (functComboBox.value == "Add")
+		    {
+			    if (toComboBox.value == "Playlist")
+			    {
+				    val dbConn = DBConn()
+				    dbConn.executeChangeQuery("INSERT INTO Playlist VALUES ('$PLACEHOLDER_PLAYLIST_NAME', '${currentUser.username}', TRUE);")
+				    dbConn.close()
+				    spawnEditPlaylistWindow(MP3Player.playlistFromName(PLACEHOLDER_PLAYLIST_NAME))
+			    }
+			    else if (toComboBox.value == "Song") {}
+		    }
+		    else if (functComboBox.value == "Edit")
+		    {
+			    if (toComboBox.value == "Playlist")
+			    {
+				    if (currentPlaylist.isUserEditable) { spawnEditPlaylistWindow(currentPlaylist) }
+				    else { Alert(Alert.AlertType.ERROR, "Cannot edit \"${currentPlaylist.playlistName}\".").showAndWait() }
+			    }
+		    }
+	    }
 	    GridPane.setConstraints(executeButton, 97, 1)
 	    grid.children.add(executeButton)
 
@@ -149,7 +171,115 @@ class Main : Application()
     }
 
     private fun login() = showNotImplemented()
-    private fun addSong() = mp3Player.seekTo(50.0)
+
+	private fun spawnEditPlaylistWindow(playlist: Playlist)
+	{
+		val grid = GridPane()
+		val scene = Scene(grid)
+		val stage = Stage()
+		stage.scene = scene
+		stage.title = "Edit ${playlist.playlistName}"
+		stage.setOnCloseRequest {
+			val confirmationResult = Alert(Alert.AlertType.CONFIRMATION, "Are you sure you want to close without saving?").showAndWait()
+			if (confirmationResult.get() == ButtonType.OK) { stage.close() }
+		}
+		grid.padding = Insets(10.0, 10.0, 10.0, 10.0)
+		grid.vgap = 5.0
+		grid.hgap = 5.0
+
+		// add name text box
+		val playlistNameBox = TextField()
+		playlistNameBox.promptText = "New playlist name..."
+		GridPane.setConstraints(playlistNameBox, 0, 0, 90, 1)
+		grid.children.add(playlistNameBox)
+
+		// add explanatory header
+		val hintHeader = TextField("Click a song to move it to the opposite playlist.")
+		hintHeader.isEditable = false
+		GridPane.setConstraints(hintHeader, 0, 1, 80, 1)
+		grid.children.add(hintHeader)
+
+		// add All Songs header
+		val allSongsHeader = TextField("All Songs")
+		allSongsHeader.isEditable = false
+		GridPane.setConstraints(allSongsHeader, 0, 2, 44, 1)
+		grid.children.add(allSongsHeader)
+
+		// add Current Playlist header
+		val currentPlaylistHeader = TextField(playlist.playlistName)
+		currentPlaylistHeader.isEditable = false
+		GridPane.setConstraints(currentPlaylistHeader, 45, 2, 44, 1)
+		grid.children.add(currentPlaylistHeader)
+
+		// add All Songs table
+		val allSongs = MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs"))
+		val allSongNames = FXCollections.observableArrayList<String>(MP3Player.titlesInPlaylist(MP3Player.playlistFromName("All Songs")))
+		val currentSongs = ArrayList<Song>(MP3Player.songsInPlaylist(playlist))
+		val currentSongNames = FXCollections.observableArrayList<String>(MP3Player.titlesInPlaylist(MP3Player.playlistFromName(playlist.playlistName)))
+
+		val allSongsLV = ListView(allSongNames)
+		var songHistory = ArrayDeque<Song>()
+		allSongsLV.selectionModel.selectedItemProperty().addListener { _, _, selectedSongName
+		->
+			if (selectedSongName in allSongNames)
+			{
+				val newSong = allSongs[allSongsLV.selectionModel.selectedIndex]
+				if (newSong !in currentSongs)
+				{
+					songHistory.add(newSong)
+					currentSongs.add(newSong)
+					currentSongNames.add(newSong.title)
+				}
+			}
+		}
+		GridPane.setConstraints(allSongsLV, 0, 3, 44, 10)
+		grid.children.add(allSongsLV)
+
+		// add Current Playlist table
+		val currentSongsLV = ListView(currentSongNames)
+		GridPane.setConstraints(currentSongsLV, 45, 3, 44, 10)
+		grid.children.add(currentSongsLV)
+
+		val undoButton = Button("Undo")
+		undoButton.setOnMouseClicked {
+			if (songHistory.isNotEmpty())
+			{
+				val songToRemove = songHistory.pop()
+				currentSongsLV.items.removeAt(currentSongs.indexOf(songToRemove))
+				currentSongs.remove(songToRemove)
+			}
+		}
+		GridPane.setConstraints(undoButton, 88, 1)
+		grid.children.add(undoButton)
+
+		// add publish button
+		val publishButton = Button("Publish!")
+		publishButton.setOnMouseClicked {
+			if (playlist.playlistName == PLACEHOLDER_PLAYLIST_NAME && playlistNameBox.text == "") { Alert(Alert.AlertType.ERROR, "Please give your new playlist a name").showAndWait() }
+			else
+			{
+				val dbConn = DBConn()
+				val newPlaylistName = if (playlistNameBox.text.isNotBlank()) playlistNameBox.text else playlist.playlistName
+				if (playlist.playlistName == PLACEHOLDER_PLAYLIST_NAME)
+				{
+					dbConn.executeChangeQuery("SET FOREIGN_KEY_CHECKS = 0;")
+					dbConn.executeChangeQuery("UPDATE Playlist SET playlistName = '$newPlaylistName' WHERE playlistName = '$PLACEHOLDER_PLAYLIST_NAME';")
+					dbConn.executeChangeQuery("UPDATE PlaylistSong SET playlistName = '$newPlaylistName' WHERE playlistName = '$PLACEHOLDER_PLAYLIST_NAME';")
+					dbConn.executeChangeQuery("SET FOREIGN_KEY_CHECKS = 1;")
+				}
+				else { dbConn.executeChangeQuery("INSERT INTO Playlist VALUES ('$newPlaylistName', '${currentUser.username}', TRUE);") }
+				currentSongs
+						.map { "INSERT INTO PlaylistSong VALUES ('$newPlaylistName', ${it.songID});" }
+						.forEach { dbConn.executeChangeQuery(it) }
+				dbConn.close()
+				stage.close()
+			}
+		}
+		GridPane.setConstraints(publishButton, 0, 13)
+		grid.children.add(publishButton)
+
+		stage.show()
+	}
 
     private fun showNotImplemented() = Alert(Alert.AlertType.WARNING, "Not implemented yet... But watch this space!").showAndWait()
 

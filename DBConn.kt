@@ -15,5 +15,11 @@ class DBConn(private val username: String = "root", private val password: String
 		return statement.executeQuery(query)
 	}
 
+	fun executeChangeQuery(query: String)
+	{
+		val statement = connection.createStatement()
+		statement.executeUpdate(query)
+	}
+
 	fun close() = connection.close()
 }
