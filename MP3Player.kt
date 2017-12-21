@@ -17,19 +17,18 @@ class MP3Player
 		{
 			val dbConn = DBConn()
 			val query = "SELECT Song.* FROM Song JOIN PlaylistSong ON Song.songID = PlaylistSong.songID WHERE PlaylistSong.playlistName = '${playlist.playlistName}';"
-			val resultSet = dbConn.resultSetFromQuery(query)
+			val resultLines = dbConn.linesFromQuery(query)
 			val songsInPlaylist = ArrayList<Song>()
 
-			while (resultSet.next())
-			{
+			resultLines.forEach {
+				val columns = it.split("\t")
 				songsInPlaylist.add(Song(
-						resultSet.getInt("songID"),
-						resultSet.getString("title"),
-						resultSet.getNString("artist"),
-						resultSet.getNString("album"),
-						resultSet.getString("filepath")
-				))
-			}
+						columns[0].trim().toInt(),
+						columns[1].trim(),
+						columns[2].trim(),
+						columns[3].trim(),
+						columns[4].trim()
+			))}
 
 			dbConn.close()
 			return songsInPlaylist
@@ -39,20 +38,22 @@ class MP3Player
 		{
 			val dbConn = DBConn()
 			val query = "SELECT Playlist.* FROM Playlist;"
-			val resultSet = dbConn.resultSetFromQuery(query)
+			//val resultSet = dbConn.resultSetFromQuery(query)
 			val allPlaylists = ArrayList<Playlist>()
 
-			while (resultSet.next())
-			{
-				allPlaylists.add(Playlist(
-						resultSet.getString("playlistName"),
-						resultSet.getString("username"),
-						resultSet.getBoolean("isUserEditable")
-				))
-			}
+			val resultLines = dbConn.linesFromQuery(query)
+			val playlists = ArrayList<Playlist>()
+
+			resultLines.forEach {
+				val columns = it.split("\t")
+				playlists.add(Playlist(
+						columns[0].trim(),
+						columns[1].trim(),
+						columns[2].trim().toBoolean()
+			))}
 
 			dbConn.close()
-			return allPlaylists
+			return playlists
 		}
 
 		fun allPlaylistNames(): ArrayList<String>
@@ -62,27 +63,9 @@ class MP3Player
 			return allNames
 		}
 
-		fun playlistFromName(name: String): Playlist
-		{
-			val dbConn = DBConn()
-			val query = "SELECT * FROM Playlist WHERE Playlist.playlistName = '$name'"
-			val resultSet = dbConn.resultSetFromQuery(query)
-			val playlist: Playlist
-			if (resultSet.next())
-			{
-				playlist = Playlist(
-						resultSet.getString("playlistName"),
-						resultSet.getString("username"),
-						resultSet.getBoolean("isUserEditable")
-				)
-			}
-			else { throw Exception("No matches where Playlist.playlistName = '$name'") }
-			dbConn.close()
-			return playlist
+		fun playlistFromName(name: String): Playlist = allPlaylists().filter { it.playlistName == name }[0]
 
-		}
-
-		fun titlesInPlaylist(playlist: Playlist): ArrayList<String>
+		fun songTitlesInPlaylist(playlist: Playlist): ArrayList<String>
 		{
 			val allSongNames = ArrayList<String>()
 			songsInPlaylist(playlist).forEach { allSongNames.add(it.title) }

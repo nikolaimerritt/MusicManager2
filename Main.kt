@@ -1,6 +1,5 @@
 package sample
 
-import com.sun.xml.internal.ws.api.addressing.WSEndpointReference
 import javafx.application.Application
 import javafx.collections.FXCollections
 import javafx.scene.Scene
@@ -14,9 +13,7 @@ import org.apache.tika.metadata.Metadata
 import org.apache.tika.parser.ParseContext
 import org.apache.tika.parser.mp3.Mp3Parser
 import org.xml.sax.helpers.DefaultHandler
-import sample.DeleteWindow.Companion.spawnDeleteWindow
 import sample.EditPlaylistWindow.Companion.spawnEditPlaylistWindow
-import java.io.File
 import java.io.FileInputStream
 
 class Main : Application()
@@ -71,7 +68,7 @@ class Main : Application()
 	    searchBox.textProperty().addListener { _, _, searchText
 	    ->
 			listView.items.clear()
-		    MP3Player.titlesInPlaylist(currentPlaylist).forEach { if (it.toLowerCase().contains(searchText.toLowerCase()) || searchText == "") listView.items.add(it) }
+		    MP3Player.songTitlesInPlaylist(currentPlaylist).forEach { if (it.toLowerCase().contains(searchText.toLowerCase()) || searchText == "") listView.items.add(it) }
 	    }
 	    searchBox.promptText = "Search me baby..."
 	    GridPane.setConstraints(searchBox, 1, 0, 97, 1)
@@ -83,7 +80,7 @@ class Main : Application()
 	    ->
 		    currentPlaylist = MP3Player.playlistFromName(newPlaylistName)
 		    observableList.clear()
-		    observableList.addAll(MP3Player.titlesInPlaylist(currentPlaylist))
+		    observableList.addAll(MP3Player.songTitlesInPlaylist(currentPlaylist))
 	    }
 	    playlistMenu.selectionModel.select("All Songs")
 	    GridPane.setConstraints(playlistMenu, 0 ,1, 5, 1)
@@ -137,14 +134,28 @@ class Main : Application()
 			    if (runActionOnComboBox.value == "Playlist")
 			    {
 				    val dbConn = DBConn()
-				    dbConn.executeChangeQuery("INSERT INTO Playlist VALUES ('$FRESH_AF_PLAYLIST_NAME', '${currentUser.username}', TRUE);")
+				    dbConn.linesFromQuery("INSERT INTO Playlist VALUES ('$FRESH_AF_PLAYLIST_NAME', '${currentUser.username}', TRUE);")
 				    dbConn.close()
 				    spawnEditPlaylistWindow(MP3Player.playlistFromName(FRESH_AF_PLAYLIST_NAME))
 			    }
 			    else if (runActionOnComboBox.value == "Song")
 			    {
 				    val songFile =  FileChooser().showOpenDialog(stage)
-					if (songFile != null) { addNewSong(songFile) }
+				    if (songFile != null)
+				    {
+					    val input = FileInputStream(songFile)
+					    val metadata = Metadata()
+						Mp3Parser().parse(input, DefaultHandler(), metadata, ParseContext())
+					    input.close()
+
+					    val newSongIndex = MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs")).last().songID + 1
+					    println(newSongIndex)
+					    val newSong = Song(newSongIndex, metadata.get("title"), metadata.get("xmpDM:artist"), metadata.get("xmpDM:album"), songFile.absolutePath.replace("\\", "\\\\"))
+					    val dbConn = DBConn()
+					    dbConn.linesFromQuery("INSERT INTO Song (songID, title, artist, album, filepath) VALUES (${newSong.songID}, '${newSong.title}', '${newSong.artist}', '${newSong.album}', '${newSong.filepath}');")
+					    dbConn.linesFromQuery("INSERT INTO PlaylistSong VALUES ('All Songs', ${newSong.songID});")
+					    dbConn.close()
+				    }
 			    }
 		    }
 		    else if (functComboBox.value == "Edit")
@@ -154,11 +165,6 @@ class Main : Application()
 				    if (currentPlaylist.isUserEditable) { spawnEditPlaylistWindow(currentPlaylist) }
 				    else { Alert(Alert.AlertType.ERROR, "Cannot edit \"${currentPlaylist.playlistName}\".").showAndWait() }
 			    }
-		    }
-		    else if (functComboBox.value == "Delete")
-		    {
-				if (runActionOnComboBox.value == "Playlist") { spawnDeleteWindow(DeleteType.PLAYLIST) }
-			    else if (runActionOnComboBox.value == "Song") { spawnDeleteWindow(DeleteType.SONG) }
 		    }
 	    }
 	    GridPane.setConstraints(executeButton, 97, 1)
@@ -191,25 +197,12 @@ class Main : Application()
 
     private fun showNotImplemented() = Alert(Alert.AlertType.WARNING, "Not implemented yet... But watch this space!").showAndWait()
 
-	private fun addNewSong(songFile: File)
-	{
-		val input = FileInputStream(songFile)
-		val metadata = Metadata()
-		Mp3Parser().parse(input, DefaultHandler(), metadata, ParseContext())
-		input.close()
-
-		val newSongIndex = MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs")).last().songID + 1
-		println(newSongIndex)
-		val newSong = Song(newSongIndex, metadata.get("title"), metadata.get("xmpDM:artist"), metadata.get("xmpDM:album"), songFile.absolutePath.replace("\\", "\\\\"))
-		val dbConn = DBConn()
-		dbConn.executeChangeQuery("INSERT INTO Song (songID, title, artist, album, filepath) VALUES (${newSong.songID}, '${newSong.title}', '${newSong.artist}', '${newSong.album}', '${newSong.filepath}');")
-		dbConn.executeChangeQuery("INSERT INTO PlaylistSong VALUES ('All Songs', ${newSong.songID});")
-		dbConn.close()
-	}
-
     companion object
     {
 	    val FRESH_AF_PLAYLIST_NAME = "<New Playlist>"
-        @JvmStatic fun main(args: Array<String>) = launch(Main::class.java)
+        @JvmStatic fun main(args: Array<String>)
+        {
+	        launch(Main::class.java)
+        }
     }
 }

@@ -6,8 +6,6 @@ import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.layout.GridPane
 import javafx.stage.Stage
-import sample.MP3Player.Companion.playlistFromName
-import sample.MP3Player.Companion.titlesInPlaylist
 import sample.Main.Companion.FRESH_AF_PLAYLIST_NAME
 
 class EditPlaylistWindow
@@ -26,7 +24,7 @@ class EditPlaylistWindow
 				if (confirmationResult.get() == ButtonType.OK)
 				{
 					val dbConn = DBConn()
-					dbConn.executeChangeQuery("DELETE FROM Playlist WHERE playlistName = '$FRESH_AF_PLAYLIST_NAME';")
+					dbConn.linesFromQuery("DELETE FROM Playlist WHERE playlistName = '$FRESH_AF_PLAYLIST_NAME';")
 					dbConn.close()
 					stage.close()
 				}
@@ -60,10 +58,10 @@ class EditPlaylistWindow
 			grid.children.add(currentPlaylistHeader)
 
 			// add All Songs table
-			val allSongs = MP3Player.songsInPlaylist(playlistFromName("All Songs"))
-			val allSongNames = FXCollections.observableArrayList<String>(titlesInPlaylist(MP3Player.playlistFromName("All Songs")))
+			val allSongs = MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs"))
+			val allSongNames = FXCollections.observableArrayList<String>(MP3Player.songTitlesInPlaylist(MP3Player.playlistFromName("All Songs")))
 			val currentSongs = ArrayList<Song>(MP3Player.songsInPlaylist(playlist))
-			val currentSongNames = FXCollections.observableArrayList<String>(titlesInPlaylist(playlistFromName(playlist.playlistName)))
+			val currentSongNames = FXCollections.observableArrayList<String>(MP3Player.songTitlesInPlaylist(MP3Player.playlistFromName(playlist.playlistName)))
 
 			val allSongsLV = ListView(allSongNames)
 			allSongsLV.setCellFactory { _ -> DelCell("->", PlaylistType.ALL_SONGS, allSongs, currentSongs, currentSongNames) }
@@ -73,7 +71,7 @@ class EditPlaylistWindow
 
 			// add Current Playlist table
 			val currentSongsLV = ListView(currentSongNames)
-			currentSongsLV.setCellFactory { _ -> DelCell("<-", PlaylistType.REGULAR_PLAYLIST, allSongs, currentSongs, currentSongNames) }
+			currentSongsLV.setCellFactory { _ -> DelCell("<-", PlaylistType.NOT_ALL_SONGS, allSongs, currentSongs, currentSongNames) }
 			GridPane.setConstraints(currentSongsLV, 81, 3, 80, 10)
 			grid.children.add(currentSongsLV)
 
@@ -88,15 +86,15 @@ class EditPlaylistWindow
 					val newPlaylistName = if (playlistNameBox.text.isNotBlank()) playlistNameBox.text else playlist.playlistName
 					if (newPlaylistName != oldPlaylistName)
 					{
-						dbConn.executeChangeQuery("SET FOREIGN_KEY_CHECKS = 0;")
-						dbConn.executeChangeQuery("UPDATE Playlist SET playlistName = '$newPlaylistName' WHERE playlistName = '$oldPlaylistName';")
-						dbConn.executeChangeQuery("UPDATE PlaylistSong SET playlistName = '$newPlaylistName' WHERE playlistName = '$oldPlaylistName';")
-						dbConn.executeChangeQuery("SET FOREIGN_KEY_CHECKS = 1;")
+						dbConn.linesFromQuery("SET FOREIGN_KEY_CHECKS = 0;")
+						dbConn.linesFromQuery("UPDATE Playlist SET playlistName = '$newPlaylistName' WHERE playlistName = '$oldPlaylistName';")
+						dbConn.linesFromQuery("UPDATE PlaylistSong SET playlistName = '$newPlaylistName' WHERE playlistName = '$oldPlaylistName';")
+						dbConn.linesFromQuery("SET FOREIGN_KEY_CHECKS = 1;")
 					}
-					else { dbConn.executeChangeQuery("DELETE FROM PlaylistSong WHERE playlistName = '$oldPlaylistName'") }
+					else { dbConn.linesFromQuery("DELETE FROM PlaylistSong WHERE playlistName = '$oldPlaylistName'") }
 					for (song in currentSongs)
 					{
-						dbConn.executeChangeQuery("INSERT IGNORE INTO PlaylistSong VALUES ('$newPlaylistName', ${song.songID});")
+						dbConn.linesFromQuery("INSERT IGNORE INTO PlaylistSong VALUES ('$newPlaylistName', ${song.songID});")
 					}
 					dbConn.close()
 					stage.close()
