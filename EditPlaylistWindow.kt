@@ -78,12 +78,12 @@ class EditPlaylistWindow
 			// add publish button
 			val publishButton = Button("Publish!")
 			publishButton.setOnMouseClicked {
-				if (playlist.playlistName == FRESH_AF_PLAYLIST_NAME && playlistNameBox.text == "") { Alert(Alert.AlertType.ERROR, "Please give your new playlist a name").showAndWait() }
+				if (playlist.playlistName == FRESH_AF_PLAYLIST_NAME && (playlistNameBox.text.isBlank() || playlistNameBox.text == FRESH_AF_PLAYLIST_NAME)) { Alert(Alert.AlertType.ERROR, "Please give your new playlist a name").showAndWait() }
 				else
 				{
 					val dbConn = DBConn()
 					val oldPlaylistName = playlist.playlistName
-					val newPlaylistName = if (playlistNameBox.text.isNotBlank()) playlistNameBox.text else playlist.playlistName
+					val newPlaylistName = if (playlistNameBox.text.isNotBlank()) playlistNameBox.text.trim() else playlist.playlistName
 					if (newPlaylistName != oldPlaylistName)
 					{
 						dbConn.linesFromQuery("SET FOREIGN_KEY_CHECKS = 0;")

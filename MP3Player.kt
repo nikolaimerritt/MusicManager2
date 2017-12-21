@@ -46,10 +46,11 @@ class MP3Player
 
 			resultLines.forEach {
 				val columns = it.split("\t")
+				println("|${columns[2]}|")
 				playlists.add(Playlist(
 						columns[0].trim(),
 						columns[1].trim(),
-						columns[2].trim().toBoolean()
+						columns[2].trim() != "0"
 			))}
 
 			dbConn.close()

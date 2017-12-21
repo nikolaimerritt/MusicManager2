@@ -51,7 +51,8 @@ class DBConn(private val hostUser: String = "pi", private val hostPassword: Stri
 	fun linesFromQuery(query: String): Array<String>
 	{
 		val resultsAsLines = outputFromCommand("mysql --user=$dbUser --password=$dbPassword -D $dbName -e \"$query\" > foo.txt && perl -pi -e 's/\n/#/g' foo.txt && cat foo.txt").split("#")
-		return resultsAsLines.subList(1, resultsAsLines.size - 1).filter { it.isNotBlank() }.toTypedArray() // first element is the column headings
+		return if (resultsAsLines.isNotEmpty()) resultsAsLines.subList(1, resultsAsLines.size).filter { it.isNotBlank() }.toTypedArray() // first element is the column headings
+		else resultsAsLines.toTypedArray() // which is empty
 	}
 
 	fun runQuery(query: String) { outputFromCommand("mysql --user=$dbUser --password=$dbPassword -D $dbName -e \"$query\"") }

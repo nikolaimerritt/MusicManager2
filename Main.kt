@@ -165,6 +165,7 @@ class Main : Application()
 		    {
 			    if (runActionOnComboBox.value == "Playlist")
 			    {
+				    println("Current Playlistuu: ${currentPlaylist.playlistName}")
 				    if (currentPlaylist.isUserEditable) { spawnEditPlaylistWindow(currentPlaylist) }
 				    else { Alert(Alert.AlertType.ERROR, "Cannot edit \"${currentPlaylist.playlistName}\".").showAndWait() }
 			    }
