@@ -27,7 +27,7 @@ class MP3Player
 						columns[1].trim(),
 						columns[2].trim(),
 						columns[3].trim(),
-						columns[4].trim()
+						columns[4].trim().replace("@@", "\\")
 			))}
 
 			dbConn.close()

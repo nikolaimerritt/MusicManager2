@@ -134,7 +134,7 @@ class Main : Application()
 			    if (runActionOnComboBox.value == "Playlist")
 			    {
 				    val dbConn = DBConn()
-				    dbConn.linesFromQuery("INSERT INTO Playlist VALUES ('$FRESH_AF_PLAYLIST_NAME', '${currentUser.username}', TRUE);")
+				    dbConn.runQuery("INSERT INTO Playlist VALUES ('$FRESH_AF_PLAYLIST_NAME', '${currentUser.username}', TRUE);")
 				    dbConn.close()
 				    spawnEditPlaylistWindow(MP3Player.playlistFromName(FRESH_AF_PLAYLIST_NAME))
 			    }
@@ -149,11 +149,14 @@ class Main : Application()
 					    input.close()
 
 					    val newSongIndex = MP3Player.songsInPlaylist(MP3Player.playlistFromName("All Songs")).last().songID + 1
-					    println(newSongIndex)
-					    val newSong = Song(newSongIndex, metadata.get("title"), metadata.get("xmpDM:artist"), metadata.get("xmpDM:album"), songFile.absolutePath.replace("\\", "\\\\"))
+					    val newTitle = if (metadata.get("title") != null) { metadata.get("title") } else songFile.name.substringBefore(".").trim()
+					    val newArtist = if (metadata.get("xmpDM:artist") != null) { metadata.get("artist") } else ""
+					    val newAlbum = if (metadata.get("xmpDM:album") != null) { metadata.get("album") } else ""
+						val newSongPath = songFile.absolutePath.replace("\\", "@@")
+
 					    val dbConn = DBConn()
-					    dbConn.linesFromQuery("INSERT INTO Song (songID, title, artist, album, filepath) VALUES (${newSong.songID}, '${newSong.title}', '${newSong.artist}', '${newSong.album}', '${newSong.filepath}');")
-					    dbConn.linesFromQuery("INSERT INTO PlaylistSong VALUES ('All Songs', ${newSong.songID});")
+					    dbConn.runQuery("INSERT INTO Song (songID, title, artist, album, filepath) VALUES ($newSongIndex, '$newTitle', '$newArtist', '$newAlbum', '$newSongPath');")
+					    dbConn.runQuery("INSERT INTO PlaylistSong VALUES ('All Songs', $newSongIndex);")
 					    dbConn.close()
 				    }
 			    }

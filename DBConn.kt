@@ -54,6 +54,8 @@ class DBConn(private val hostUser: String = "pi", private val hostPassword: Stri
 		return resultsAsLines.subList(1, resultsAsLines.size - 1).filter { it.isNotBlank() }.toTypedArray() // first element is the column headings
 	}
 
+	fun runQuery(query: String) { outputFromCommand("mysql --user=$dbUser --password=$dbPassword -D $dbName -e \"$query\"") }
+
 	fun close() = session.disconnect()
 
 }
