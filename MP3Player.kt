@@ -38,9 +38,6 @@ class MP3Player
 		{
 			val dbConn = DBConn()
 			val query = "SELECT Playlist.* FROM Playlist;"
-			//val resultSet = dbConn.resultSetFromQuery(query)
-			val allPlaylists = ArrayList<Playlist>()
-
 			val resultLines = dbConn.linesFromQuery(query)
 			val playlists = ArrayList<Playlist>()
 
@@ -71,6 +68,20 @@ class MP3Player
 			val allSongNames = ArrayList<String>()
 			songsInPlaylist(playlist).forEach { allSongNames.add(it.title) }
 			return allSongNames
+		}
+
+		fun nthSongInPlaylist(playlist: Playlist, n: Int): Song
+		{
+			val dbConn = DBConn()
+			val songID = dbConn.linesFromQuery("SELECT * FROM PlaylistSong WHERE playlistName = '${playlist.playlistName}' ORDER BY songID LIMIT $n, 1")[0].substringAfter("\t").trim().toInt()
+			val songData = dbConn.linesFromQuery("SELECT * FROM Song WHERE songID = $songID;")[0].split("\t")
+			return Song(
+					songData[0].trim().toInt(),
+					songData[1].trim(),
+					songData[2].trim(),
+					songData[3].trim(),
+					songData[4].trim().replace("@@", "\\")
+			)
 		}
 	}
 

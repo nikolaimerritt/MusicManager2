@@ -1,11 +1,9 @@
 package sample
 
-import com.jcraft.jsch.Channel
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.JSch
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.sql.ResultSet
 import java.util.*
 
 class DBConn(private val hostUser: String = "pi", private val hostPassword: String = "enumaEli_s", private val hostURL: String = "www.musicmanager.duckdns.org", private val dbUser: String = "root", private val dbPassword: String = "yagamiLigh_t", private val dbName: String = "MusicLibrary")
@@ -27,7 +25,7 @@ class DBConn(private val hostUser: String = "pi", private val hostPassword: Stri
 
 	}
 
-	fun outputFromCommand(command: String): String
+	private fun outputFromCommand(command: String): String
 	{
 		if (!connected) { connect() }
 		val channel = session.openChannel("exec")
@@ -56,6 +54,14 @@ class DBConn(private val hostUser: String = "pi", private val hostPassword: Stri
 	}
 
 	fun runQuery(query: String) { outputFromCommand("mysql --user=$dbUser --password=$dbPassword -D $dbName -e \"$query\"") }
+
+	fun userExists(username: String, password: String) = linesFromQuery("SELECT * FROM User WHERE username = '$username' and password = '$password';").isNotEmpty()
+
+	fun makeNewUser(username: String, password: String)
+	{
+		runQuery("INSERT INTO User VALUES ('$username', '$password');")
+		runQuery("INSERT INTO Playlist VALUES ('All Songs', '$username', 0);")
+	}
 
 	fun close() = session.disconnect()
 
